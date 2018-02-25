@@ -15,27 +15,50 @@ import unicodedata
 
 from os.path import dirname, join
 
-from doge import wow
+from bh3 import wow
+from bh3 import lines
 
-ROOT = join(dirname(__file__), 'static')
+AVATOR_DIR = join(dirname(__file__), 'ascii_imgs')
 DEFAULT_DOGE = 'doge.txt'
 
+AVATORS = os.listdir(AVATOR_DIR)
 
-class Doge(object):
+
+class BH3(object):
     def __init__(self, tty, ns):
         self.tty = tty
         self.ns = ns
-        self.doge_path = join(ROOT, ns.doge_path or DEFAULT_DOGE)
-        if ns.frequency:
-            # such frequency based
-            self.words = \
-                wow.FrequencyBasedDogeDeque(*wow.WORD_LIST, step=ns.step)
+
+        self.select_avator(ns.avator, ns.no)
+        self.pic_path = join(AVATOR_DIR, self.avator_name, str(self.avator_no) + '.txt')
+        self.words = wow.DogeDeque(*lines.LINES.get(self.avator_name, []))
+
+
+    def select_avator(self, avator_name, avator_no):
+        if avator_name is None:
+            if len(AVATORS) == 0:
+                print('avator error: no avator to be choice')
+                os.exit(1)
+            avator_name = random.choice(AVATORS)
         else:
-            self.words = wow.DogeDeque(*wow.WORD_LIST)
+            if avator_name not in AVATORS:
+                print('avator error: no such avator name')
+                os.exit(1)
+
+        if avator_no is None:
+            resources = [os.path.splitext(name)[0]
+                         for name in os.listdir(join(AVATOR_DIR, avator_name))
+                         if name.endswith('.txt')
+                        ]
+            if len(resources) == 0:
+                print('avator error: %s has no resource' % avator_name)
+                os.exit(1)
+            avator_no = random.choice(resources)
+        self.avator_name = avator_name
+        self.avator_no = avator_no
+
 
     def setup(self):
-        # Setup seasonal data
-        self.setup_seasonal()
 
         if self.tty.pretty:
             # stdout is a tty, load Shibe and calculate how wide he is
@@ -65,53 +88,8 @@ class Doge(object):
         # Try to fetch data fed thru stdin
         had_stdin = self.get_stdin_data()
 
-        # Get some system data, but only if there was nothing in stdin
-        if not had_stdin:
-            self.get_real_data()
-
         # Apply the text around Shibe
         self.apply_text()
-
-    def setup_seasonal(self):
-        """
-        Check if there's some seasonal holiday going on, setup appropriate
-        Shibe picture and load holiday words.
-
-        Note: if there are two or more holidays defined for a certain date,
-        the first one takes precedence.
-
-        """
-
-        # If we've specified a season, just run that one
-        if self.ns.season:
-            return self.load_season(self.ns.season)
-
-        # If we've specified another doge or no doge at all, it does not make
-        # sense to use seasons.
-        if self.ns.doge_path is not None and not self.ns.no_shibe:
-            return
-
-        now = datetime.datetime.now()
-
-        for season, data in wow.SEASONS.items():
-            start, end = data['dates']
-            start_dt = datetime.datetime(now.year, start[0], start[1])
-
-            # Be sane if the holiday season spans over New Year's day.
-            end_dt = datetime.datetime(
-                now.year + (start[0] > end[0] and 1 or 0), end[0], end[1])
-
-            if start_dt <= now <= end_dt:
-                # Wow, much holiday!
-                return self.load_season(season)
-
-    def load_season(self, season_key):
-        if season_key == 'none':
-            return
-
-        season = wow.SEASONS[season_key]
-        self.doge_path = join(ROOT, season['pic'])
-        self.words.extend(season['words'])
 
     def apply_text(self):
         """
@@ -130,9 +108,6 @@ class Doge(object):
 
             word = self.words.get()
 
-            # If first or last line, or a random selection, use standalone wow.
-            if i == 1 or i == len(affected) or random.choice(range(20)) == 0:
-                word = 'wow'
 
             # Generate a new DogeMessage, possibly based on a word.
             self.lines[target] = DogeMessage(self, line, word).generate()
@@ -145,10 +120,7 @@ class Doge(object):
 
         """
 
-        if self.ns.no_shibe:
-            return ['']
-
-        with open(self.doge_path) as f:
+        with open(self.pic_path) as f:
             if sys.version_info < (3, 0):
                 if locale.getpreferredencoding() == 'UTF-8':
                     doge_lines = [l.decode('utf-8') for l in f.xreadlines()]
@@ -166,45 +138,6 @@ class Doge(object):
                 doge_lines = [l for l in f.readlines()]
             return doge_lines
 
-    def get_real_data(self):
-        """
-        Grab actual data from the system
-
-        """
-
-        ret = []
-        username = os.environ.get('USER')
-        if username:
-            ret.append(username)
-
-        editor = os.environ.get('EDITOR')
-        if editor:
-            editor = editor.split('/')[-1]
-            ret.append(editor)
-
-        # OS, hostname and... architechture (because lel)
-        if hasattr(os, 'uname'):
-            uname = os.uname()
-            ret.append(uname[0])
-            ret.append(uname[1])
-            ret.append(uname[4])
-
-        # Grab actual files from $HOME.
-        files = os.listdir(os.environ.get('HOME'))
-        if files:
-            ret.append(random.choice(files))
-
-        # Grab some processes
-        ret += self.get_processes()[:2]
-
-        # Prepare the returned data. First, lowercase it.
-        # If there is unicode data being returned from any of the above
-        # Python 2 needs to decode the UTF bytes to not crash. See issue #45.
-        func = str.lower
-        if sys.version_info < (3,):
-            func = lambda x: str.lower(x).decode('utf-8')
-
-        self.words.extend(map(func, ret))
 
     def filter_words(self, words, stopwords, min_length):
         return [word for word in words if
@@ -290,16 +223,7 @@ class DogeMessage(object):
         self.word = word
 
     def generate(self):
-        if self.word == 'wow':
-            # Standalone wow. Don't apply any prefixes or suffixes.
-            msg = self.word
-        else:
-            # Add a prefix.
-            msg = u'{0} {1}'.format(wow.PREFIXES.get(), self.word)
-
-            # Seldomly add a suffix as well.
-            if random.choice(range(15)) == 0:
-                msg += u' {0}'.format(wow.SUFFIXES.get())
+        msg = self.word
 
         # Calculate the maximum possible spacer
         interval = self.tty.width - onscreen_len(msg)
@@ -313,7 +237,7 @@ class DogeMessage(object):
             return self.occupied + "\n"
 
         # Apply spacing
-        msg = u'{0}{1}'.format(' ' * random.choice(range(interval)), msg)
+        msg = u'{0}{1}'.format(' ' * random.choice(range(interval)), msg.decode('utf-8'))
 
         if self.tty.pretty:
             # Apply pretty ANSI color coding.
@@ -418,36 +342,15 @@ def setup_arguments():
     parser = argparse.ArgumentParser('doge')
 
     parser.add_argument(
-        '--shibe',
-        help='wow shibe file',
-        dest='doge_path',
-        choices=os.listdir(ROOT)
+        '--avator',
+        help='which bh3 avator',
+        dest='avator',
+        choices=AVATORS
     )
 
     parser.add_argument(
-        '--no-shibe',
-        action="store_true",
-        help="wow no doge show :("
-    )
-
-    parser.add_argument(
-        '--season',
-        help='wow shibe season congrate',
-        choices=sorted(wow.SEASONS.keys()) + ['none']
-    )
-
-    parser.add_argument(
-        '-f', '--frequency',
-        help='such frequency based',
-        action='store_true'
-    )
-
-    parser.add_argument(
-        '--step',
-        help='beautiful step',  # how much to step
-        #  between ranks in FrequencyBasedDogeDeque
-        type=int,
-        default=2,
+        '--no',
+        type=int
     )
 
     parser.add_argument(
@@ -459,7 +362,7 @@ def setup_arguments():
 
     parser.add_argument(
         '-s', '--filter_stopwords',
-        help='many words lol',
+        help='many ords lol',
         action='store_true'
     )
 
@@ -489,7 +392,7 @@ def main():
         tty.width = ns.max_width
 
     try:
-        shibe = Doge(tty, ns)
+        shibe = BH3(tty, ns)
         shibe.setup()
         shibe.print_doge()
 

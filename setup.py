@@ -1,15 +1,15 @@
 from setuptools import setup
 
 setup(
-    name='doge',
-    version='3.6.0',
-    url='https://github.com/thiderman/doge',
-    author='Lowe Thiderman',
-    author_email='lowe.thiderman@gmail.com',
-    description=('wow very terminal doge'),
+    name='bh3',
+    version='1.0.0',
+    url='https://github.com/dzdx/bh3',
+    author='dzdx',
+    author_email='dzidaxie@gmail.com',
+    description=('wow very terminal bh3'),
     license='MIT',
-    packages=['doge'],
-    package_data={'doge': ['static/*.txt']},
+    packages=['bh3'],
+    package_data={'bh3': ['static/*.txt']},
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
@@ -17,5 +17,5 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 2',
     ],
-    entry_points={'console_scripts': ['doge = doge.core:main']},
+    entry_points={'console_scripts': ['bh3 = bh3.core:main']},
 )
