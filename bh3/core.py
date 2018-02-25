@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import profile
 import datetime
 import locale
 import os
@@ -16,10 +17,10 @@ import unicodedata
 from os.path import dirname, join
 
 from bh3 import wow
+import time
 from bh3 import lines
 
 AVATOR_DIR = join(dirname(__file__), 'ascii_imgs')
-DEFAULT_DOGE = 'doge.txt'
 
 AVATORS = os.listdir(AVATOR_DIR)
 
@@ -37,12 +38,12 @@ class BH3(object):
     def select_avator(self, avator_name, avator_no):
         if avator_name is None:
             if len(AVATORS) == 0:
-                print('avator error: no avator to be choice')
+                sys.stderr.write('avator error: no avator to be choice\n')
                 os.exit(1)
             avator_name = random.choice(AVATORS)
         else:
             if avator_name not in AVATORS:
-                print('avator error: no such avator name')
+                sys.stderr.write('avator error: no such avator name\n')
                 os.exit(1)
 
         if avator_no is None:
@@ -51,7 +52,7 @@ class BH3(object):
                          if name.endswith('.txt')
                         ]
             if len(resources) == 0:
-                print('avator error: %s has no resource' % avator_name)
+                sys.stderr.write('avator error: %s has no resource\n' % avator_name)
                 os.exit(1)
             avator_no = random.choice(resources)
         self.avator_name = avator_name
@@ -139,9 +140,8 @@ class BH3(object):
             return doge_lines
 
 
-    def filter_words(self, words, stopwords, min_length):
-        return [word for word in words if
-                len(word) >= min_length and word not in stopwords]
+    def filter_words(self, words, min_length):
+        return [word for word in words if len(word) >= min_length]
 
     def get_stdin_data(self):
         """
@@ -165,42 +165,13 @@ class BH3(object):
         word_list = [match.group(0)
                      for line in stdin_lines
                      for match in rx_word.finditer(line.lower())]
-        if self.ns.filter_stopwords:
-            word_list = self.filter_words(
-                word_list, stopwords=wow.STOPWORDS,
-                min_length=self.ns.min_length)
+        word_list = self.filter_words(
+            word_list,
+            min_length=self.ns.min_length)
 
         self.words.extend(word_list)
 
         return True
-
-    def get_processes(self):
-        """
-        Grab a shuffled list of all currently running process names
-
-        """
-
-        procs = set()
-
-        try:
-            # POSIX ps, so it should work in most environments where doge would
-            p = sp.Popen(['ps', '-A', '-o', 'comm='], stdout=sp.PIPE)
-            output, error = p.communicate()
-
-            if sys.version_info > (3, 0):
-                output = output.decode('utf-8')
-
-            for comm in output.split('\n'):
-                name = comm.split('/')[-1]
-                # Filter short and weird ones
-                if name and len(name) >= 2 and ':' not in name:
-                    procs.add(name)
-
-        finally:
-            # Either it executed properly or no ps was found.
-            proc_list = list(procs)
-            random.shuffle(proc_list)
-            return proc_list
 
     def print_doge(self):
         for line in self.lines:
@@ -361,12 +332,6 @@ def setup_arguments():
     )
 
     parser.add_argument(
-        '-s', '--filter_stopwords',
-        help='many ords lol',
-        action='store_true'
-    )
-
-    parser.add_argument(
         '-mh', '--max-height',
         help='such max height',
         type=int,
@@ -392,9 +357,9 @@ def main():
         tty.width = ns.max_width
 
     try:
-        shibe = BH3(tty, ns)
-        shibe.setup()
-        shibe.print_doge()
+        bh3 = BH3(tty, ns)
+        bh3.setup()
+        bh3.print_doge()
 
     except (UnicodeEncodeError, UnicodeDecodeError):
         # Some kind of unicode error happened. This is usually because the
