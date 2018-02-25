@@ -39,6 +39,8 @@ python setup.py install
 
 终端中的女武神Q版头像是由 [img2xterm][i2x] 创建
 
-The terminal Shibe was created with hax0r Gimp skills and .
+目前只录入了部分角色Q版头像和台词，希望米娜桑可以帮忙继续添加新头像和台词，或者贡献新feature.
+
+
 
 [i2x]: https://github.com/rossy2401/img2xterm
