@@ -9,7 +9,7 @@ setup(
     description=('wow very terminal bh3'),
     license='MIT',
     packages=['bh3'],
-    package_data={'bh3': ['static/*.txt']},
+    package_data={'bh3': ['ascii_imgs/*/*.txt']},
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',

@@ -25,14 +25,16 @@ AVATOR_DIR = join(dirname(__file__), 'ascii_imgs')
 AVATORS = os.listdir(AVATOR_DIR)
 
 
-class BH3(object):
+class Valkyrie(object):
     def __init__(self, tty, ns):
         self.tty = tty
         self.ns = ns
 
         self.select_avator(ns.avator, ns.no)
         self.pic_path = join(AVATOR_DIR, self.avator_name, str(self.avator_no) + '.txt')
-        self.words = wow.DogeDeque(*lines.LINES.get(self.avator_name, []))
+        words = lines.linesGetter.get_lines(self.avator_name)
+        words = self.filter_words(words, min_length=ns.min_length)
+        self.words = wow.DogeDeque(*words)
 
 
     def select_avator(self, avator_name, avator_no):
@@ -89,6 +91,7 @@ class BH3(object):
         # Try to fetch data fed thru stdin
         had_stdin = self.get_stdin_data()
 
+
         # Apply the text around Shibe
         self.apply_text()
 
@@ -110,8 +113,8 @@ class BH3(object):
             word = self.words.get()
 
 
-            # Generate a new DogeMessage, possibly based on a word.
-            self.lines[target] = DogeMessage(self, line, word).generate()
+            # Generate a new Message, possibly based on a word.
+            self.lines[target] = Message(self, line, word).generate()
 
     def load_doge(self):
         """
@@ -173,7 +176,7 @@ class BH3(object):
 
         return True
 
-    def print_doge(self):
+    def print_avator(self):
         for line in self.lines:
             if sys.version_info < (3, 0):
                 line = line.encode('utf8')
@@ -181,15 +184,15 @@ class BH3(object):
         sys.stdout.flush()
 
 
-class DogeMessage(object):
+class Message(object):
     """
     A randomly placed and randomly colored message
 
     """
 
-    def __init__(self, doge, occupied, word):
-        self.doge = doge
-        self.tty = doge.tty
+    def __init__(self, valkyrie, occupied, word):
+        self.valkyrie = valkyrie
+        self.tty =  valkyrie.tty
         self.occupied = occupied
         self.word = word
 
@@ -208,7 +211,7 @@ class DogeMessage(object):
             return self.occupied + "\n"
 
         # Apply spacing
-        msg = u'{0}{1}'.format(' ' * random.choice(range(interval)), msg.decode('utf-8'))
+        msg = u'{0}{1}'.format(' ' * random.choice(range(interval)), msg)
 
         if self.tty.pretty:
             # Apply pretty ANSI color coding.
@@ -310,7 +313,7 @@ def onscreen_len(s):
 
 
 def setup_arguments():
-    parser = argparse.ArgumentParser('doge')
+    parser = argparse.ArgumentParser('bh3')
 
     parser.add_argument(
         '--avator',
@@ -357,9 +360,9 @@ def main():
         tty.width = ns.max_width
 
     try:
-        bh3 = BH3(tty, ns)
-        bh3.setup()
-        bh3.print_doge()
+        v = Valkyrie(tty, ns)
+        v.setup()
+        v.print_avator()
 
     except (UnicodeEncodeError, UnicodeDecodeError):
         # Some kind of unicode error happened. This is usually because the
@@ -383,7 +386,7 @@ def main():
 
         print(
             "wow error: Unknown unicode error.  Please report at "
-            "https://github.com/thiderman/doge/issues and include output from "
+            "https://github.com/dzdx/bh3/issues and include output from "
             "/usr/bin/locale"
         )
         return 1

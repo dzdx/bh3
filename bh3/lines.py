@@ -1,4 +1,5 @@
 # coding: utf-8
+import sys
 
 
 KIANA_LINES = [
@@ -407,3 +408,15 @@ LINES = {
 }
 
 
+
+class ValkyrieLines(object):
+    def __init__(self):
+        self.data = LINES
+
+    def get_lines(self, avator_name):
+        lines = self.data.get(avator_name, [])
+        if sys.version_info < (3, 0):
+            lines = [w.decode('utf-8') for w in lines]
+        return lines
+
+linesGetter = ValkyrieLines()
