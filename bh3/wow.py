@@ -40,7 +40,7 @@ class DogeDeque(deque):
         try:
             return self[0]
         except:
-            return "hello ~ 舰长"
+            return u"hello ~ 舰长"
 
     def extend(self, iterable):
         # Whenever we extend the list, make sure to shuffle in the new items!
